@@ -1,0 +1,240 @@
+TITULO	TIPO	BD	CONSULTA
+INFORMACION	text		
+
+
+Análisis propuesto por el nodo coordinador.
+
+Consiste en un análisis de riesgos para la predicción precoz personalizada sobre pacientes con cáncer de pulmón (CP). Concretamente, se predice la probabilidad de diagnóstico de CP durante el seguimiento a partir de los datos basales recogidos durante el periodo de observación. Se ejecuta un análisis de Kaplan-Meier, modelo de riesgos proporcionales de Cox y su versión mediante la regularización Elastic Net.
+
+Metodología:
+
+
+Se consulta la base de datos local y se extrae la cohorte de pacientes que cumplen con los criterios de inclusión: Pacientes mayores de 18 años, sin diagnóstico de cáncer de pulmón anterior a la fecha índice, con una visita al centro registrada en el año 2020 y 5 años de registros anteriores a dicha fecha índice. Fecha índice: Primera visita hospitalaria o de atención primaria registrada por un paciente que cumple los criterios de inclusión durante el año 2020.
+
+Se crea una nueva tabla en la base de datos local donde se almacenan los datos de la cohorte necesarios para el análisis.
+
+Se ejecuta el análisis mediante una llamada a la API de R y se almacenan los resultados.
+
+ENTRADA	variable	OMOP	WITH params AS (
+SELECT
+DATE '2020-01-01' AS start_index_date,
+DATE '2020-12-31' AS end_index_date,
+DATE '2024-11-01' AS admin_censor_date,
+2000 AS sample_size,
+5 AS prior_observation_years
+),
+
+/* 1) Lung Cancer Concepts */
+cancer_concepts_full AS (
+SELECT concept_id FROM (VALUES (44501357), (44505032), (36560845), (44501585), (36531338), (44502549), (36567582), (37311684), (36552952), (36561283), (36564508), (36520679), (36541364), (36546635), (42511919), (44501404), (44505016), (44500290), (44502329), (36518742), (44499882), (42539251), (4112738), (36523702), (44499889), (44505023), (36560716), (36520748), (36552385), (36532844), (36550126), (44502334), (36536513), (36523365), (44502623), (44505022), (36517902), (36553787), (36528862), (36546130), (36558787), (44500448), (36551240), (36712981), (36543615), (36539915), (36548825), (36543960), (36551818), (36542106), (36527609), (36548193), (36551189), (36526019), (36549979), (36518654), (44502466), (44505024), (44501795), (44502703), (36548626), (44500414), (36530431), (36564925), (36556919), (36532026), (44503034), (36535086), (36567502), (36553794), (36551342), (36533348), (36555776), (36530839), (36521617), (36529004), (36552086), (36536903), (44502784), (1553230), (44502769), (44505018), (36536437), (44499686), (36531120), (36545242), (44503098), (44505033), (44502961), (44502885), (36535081), (44499900), (36538056), (36558877), (36525316), (44503152), (36559892), (44501794), (36566849), (36534932), (36523265), (36566204), (36549769), (36548902), (36555136), (36524040), (44503010), (44505013), (44502436), (44501567), (36541713), (44500287), (36403024), (44503018), (44505021), (36561810), (44500790), (36531901), (44499688), (44499676), (36545372), (36565111), (44501179), (36542965), (36543187), (44504995), (44505001), (44500629), (44502676), (4155293), (40492938), (4162250), (4162248), (4162252), (36547511), (36546260), (36529246), (36529404), (36563697), (36536126), (44505002), (44502764), (44505003), (36567740), (44500114), (36558543), (44503538), (36529581), (36525643), (36520147), (36548953), (36561916), (36551697), (44502949), (44505026), (44499508), (36556614), (36567491), (44499915), (36560854), (36519384), (36547678), (36534747), (36565786), (36558515), (42511851), (4140471), (4143825), (42512311), (36517234), (36552199), (36529740), (36539842), (36537196), (36529691), (44502320), (4110590), (44500541), (44503539), (36544137), (36532996), (44500573), (36560499), (36536786), (36555815), (36545406), (36563276), (36541263), (36549522), (36545761), (36562863), (36558400), (36557699), (44501124), (44500971), (44500918), (44500183), (36565647), (44500841), (36686537), (4110589), (4314040), (4307118), (4312768), (4313751), (36686538), (36524261), (44500359), (44499741), (36565633), (44500356), (36535558), (44501438), (37110033), (4089756), (37110031), (4157333), (4092218), (4092217), (4089754), (37110034), (4151250), (37110032), (4092216), (36545284), (36527781), (36522516), (36522910), (36518733), (36524292), (36550795), (36530810), (36559936), (36567622), (443388), (4110587), (44501612), (36540207), (36552710), (36523996), (36554594), (36526134), (44499898), (36526857), (36540041), (36555685), (36529915), (36564670), (36565803), (36526753), (36549552), (36547828), (36548970), (36522427), (42512265), (42512505), (42512456), (42511962), (42512801), (42512752), (42512246), (42512620), (42512222), (42512380), (42512616), (42512867), (42512859), (42512336), (42512569), (42511979), (42511673), (42511853), (36532293), (36529938), (36563834), (36563105), (36537460), (36567546), (1553314), (42512781), (44502341), (44505030), (44502952), (44502543), (36556450), (44500072), (36520186), (44505029), (44500201), (44501411), (44503093), (44500302), (44500303), (44502876), (44501086), (36565274), (44502109), (44502238), (36558235), (36556496), (42513175), (42513174), (44504994), (44504998), (44499479), (44504990), (44500188), (44505008), (4310703), (4314172), (4311997), (4308479), (44500713), (44501471), (36551824), (44499422), (4115276), (45766129), (45766131), (4208307), (42512043), (42512060), (42511764), (42512203), (42512108), (42511775), (258375), (4110706), (44500415), (44505025), (44500730), (44502943), (36555703), (44502176), (44499007), (44503004), (44500343), (36522300), (36533515), (44500577), (44501061), (44505010), (44501394), (36561274), (36560118), (44501613), (44499866), (44505004), (44500843), (44501558), (36519829), (44501926), (36561699), (36539661), (44502006), (36539223), (36523297), (36529321), (45768884), (36712707), (36712709), (45768916), (36712708), (36717017), (45768928), (45768881), (45768919), (46272955), (45768918), (45768879), (442139), (433973), (4246027), (4247727), (4246804), (4246805), (4246121), (762426), (601154), (4246126), (4157454), (4247832), (258369), (257503), (256646), (4246148), (762427), (601155), (4311501), (261236), (4312567), (45768930), (45768880), (45768917), (45768932), (45769034), (45772939), (45768931), (45768886), (45772938), (45768922), (45768929), (45772933), (45768883), (45768885), (45768921), (45768920), (3654301), (36716426), (36523412), (36538057), (36530722), (36538858), (36556267), (36541038), (36539497), (36521066), (36549175), (36526433), (36525052), (44499513), (44505031), (44500458), (36539786), (36536832), (44502711), (44502390), (44505019), (36541699), (36545286), (36531543), (44500061), (44502856), (44505005), (44499621), (36528414), (36538391), (44501559), (36545785), (36561870), (36522039), (36548201), (36566369), (36525571), (44500239), (44505014), (36531347), (36554751), (36567060), (44500855), (44500190), (44501707), (44501188), (44502921), (36567522), (44503136), (44503138), (44499726), (44500433), (44501709), (36520827), (44499794), (44500348), (36554642), (36567972), (36549159), (36541640), (36552939), (44499488), (44505011), (44501335), (44499010), (36531819), (44500984), (4196724), (4197581), (4196725), (4197582), (4197583), (36712815), (4110705), (4310448), (4313200), (4322387), (4312274), (36712816), (44501516), (36543984), (36567150), (44502457), (36535903), (44501310), (36557771), (36557751), (36541027), (36538464), (36531136), (36556975), (37109576), (36532437), (36537250), (36561009), (36546410), (36521546), (36518808), (44500587), (36550929), (36554307), (44503204), (36564290), (36568204), (36568135), (36527742), (36547553), (36538987), (36538582), (36537230), (36559186), (36531433), (36562727)) AS t(concept_id)
+),
+
+/* 2) Index Date */
+index_visits AS (
+SELECT v.person_id, MIN(v.visit_start_date) AS index_date
+FROM visit_occurrence v
+JOIN params p ON v.visit_start_date BETWEEN p.start_index_date AND p.end_index_date
+GROUP BY v.person_id
+--limit 1000
+
+),
+
+/* 3) Inclusion Criteria */
+eligible_patients AS (
+SELECT
+iv.person_id, iv.index_date, p.gender_concept_id, p.year_of_birth, d.min_death_date AS death_date
+FROM index_visits iv
+CROSS JOIN params par
+JOIN person p ON iv.person_id = p.person_id
+JOIN observation_period op ON iv.person_id = op.person_id
+AND iv.index_date BETWEEN op.observation_period_start_date AND op.observation_period_end_date
+LEFT JOIN (
+SELECT person_id, MIN(death_date) AS min_death_date
+FROM death
+GROUP BY person_id
+) d ON iv.person_id = d.person_id
+WHERE (EXTRACT(YEAR FROM iv.index_date) - p.year_of_birth) >= 18
+AND p.gender_concept_id IN (8507, 8532)
+AND op.observation_period_start_date <= (iv.index_date - (par.prior_observation_years || ' years')::interval)
+AND (d.min_death_date IS NULL OR ( d.min_death_date >= iv.index_date AND EXTRACT(YEAR FROM d.min_death_date) >= p.year_of_birth ))
+AND NOT EXISTS (
+SELECT 1 FROM condition_occurrence co
+WHERE co.person_id = iv.person_id
+AND co.condition_concept_id IN (SELECT concept_id FROM cancer_concepts_full)
+AND co.condition_start_date < iv.index_date
+)
+
+),
+
+/* 4) Outcome Event - prediction period */
+outcomes AS (
+SELECT ep.person_id, MIN(co.condition_start_date) AS first_cancer_date
+FROM eligible_patients ep
+JOIN condition_occurrence co ON ep.person_id = co.person_id
+JOIN params par ON co.condition_start_date BETWEEN ep.index_date AND par.admin_censor_date
+WHERE co.condition_concept_id IN (SELECT concept_id FROM cancer_concepts_full)
+GROUP BY ep.person_id
+),
+
+/* 5) Final Cohort Assembly */
+cohort_final AS (
+SELECT ep.person_id AS subject_id, ep.index_date, ep.gender_concept_id, ep.year_of_birth, ep.death_date, o.first_cancer_date,
+CASE WHEN o.first_cancer_date IS NOT NULL THEN 1 ELSE 0 END AS event_occurred,
+LEAST(COALESCE(o.first_cancer_date, DATE '9999-12-31'), COALESCE(ep.death_date, DATE '9999-12-31'), par.admin_censor_date) AS end_followup_date
+FROM eligible_patients ep
+LEFT JOIN outcomes o ON ep.person_id = o.person_id
+CROSS JOIN params par
+),
+
+/* 6) Sampling - Proportion 5:1 */
+all_cases AS (SELECT * FROM cohort_final WHERE event_occurred = 1),
+all_controls AS (SELECT * FROM cohort_final WHERE event_occurred = 0),
+
+sampled_cases AS (
+SELECT * FROM all_cases
+ORDER BY MD5(subject_id::TEXT || 'semilla_2024')
+LIMIT (SELECT (sample_size * 1/6)::INT FROM params)
+),
+
+sampled_controls AS (
+SELECT c.* FROM all_controls c
+INNER JOIN (SELECT COUNT(*) as n FROM sampled_cases) sc ON TRUE
+ORDER BY MD5(c.subject_id::TEXT || 'semilla_2024')
+LIMIT (SELECT COUNT(*) * 5 FROM sampled_cases)
+),
+
+sampled_final AS (
+SELECT * FROM sampled_cases
+UNION ALL
+SELECT * FROM sampled_controls
+),
+
+/* 7) Predictor concept list */
+predictor_concepts AS (
+SELECT 'COPD' AS var, descendant_concept_id AS cid FROM concept_ancestor WHERE ancestor_concept_id = 255573
+UNION ALL
+SELECT 'Asthma', descendant_concept_id FROM concept_ancestor WHERE ancestor_concept_id = 317009
+UNION ALL
+SELECT 'Diabetes', descendant_concept_id FROM concept_ancestor WHERE ancestor_concept_id = 201820
+UNION ALL
+SELECT 'Cardiovascular_Disease', descendant_concept_id FROM concept_ancestor WHERE ancestor_concept_id IN (4134586, 4185932)
+UNION ALL
+SELECT 'Hypertension', descendant_concept_id FROM concept_ancestor WHERE ancestor_concept_id = 316866
+UNION ALL
+SELECT 'Smoking', descendant_concept_id FROM concept_ancestor WHERE ancestor_concept_id = 4209423
+UNION ALL
+SELECT 'Pulmonary_Fibrosis', concept_id FROM concept WHERE concept_id IN (253797, 45763750, 4025168)
+UNION ALL
+SELECT 'Pneumonia', descendant_concept_id FROM concept_ancestor WHERE ancestor_concept_id = 255848
+),
+
+/* 8) Covariables - observation period */
+cond_cov AS (
+SELECT sf.subject_id,
+MAX(CASE WHEN pc.var = 'COPD' THEN 1 ELSE 0 END) AS has_copd,
+MAX(CASE WHEN pc.var = 'Asthma' THEN 1 ELSE 0 END) AS has_asthma,
+MAX(CASE WHEN pc.var = 'Diabetes' THEN 1 ELSE 0 END) AS has_diabetes,
+MAX(CASE WHEN pc.var = 'Cardiovascular_Disease' THEN 1 ELSE 0 END) AS has_cvd,
+MAX(CASE WHEN pc.var = 'Hypertension' THEN 1 ELSE 0 END) AS has_htn,
+MAX(CASE WHEN pc.var = 'Smoking' THEN 1 ELSE 0 END) AS has_smoking,
+MAX(CASE WHEN pc.var = 'Pneumonia' THEN 1 ELSE 0 END) AS has_pneumonia,
+MAX(CASE WHEN pc.var = 'Pulmonary_Fibrosis' THEN 1 ELSE 0 END) AS has_fibrosis
+FROM sampled_final sf
+JOIN params par ON TRUE
+JOIN condition_occurrence co ON sf.subject_id = co.person_id
+AND co.condition_start_date BETWEEN (sf.index_date - (par.prior_observation_years || ' years')::interval) AND sf.index_date
+JOIN predictor_concepts pc ON co.condition_concept_id = pc.cid
+GROUP BY sf.subject_id
+),
+
+visit_cov AS (
+SELECT sf.subject_id,
+COUNT(DISTINCT CASE WHEN (v.visit_concept_id = 9203 AND v.visit_source_value = 'Emergency Room Visit') THEN v.visit_occurrence_id END) AS prior_er_visits,
+COUNT(DISTINCT CASE WHEN (v.visit_concept_id = 9201 AND v.visit_source_value = 'Inpatient Visit') THEN v.visit_occurrence_id END) AS prior_inpatient_visits
+FROM sampled_final sf
+JOIN params par ON TRUE
+JOIN visit_occurrence v ON sf.subject_id = v.person_id
+AND v.visit_start_date BETWEEN (sf.index_date - (par.prior_observation_years || ' years')::interval) AND sf.index_date
+WHERE v.visit_concept_id IN (9203, 9201)
+GROUP BY sf.subject_id
+)
+
+/* Final Result */
+SELECT
+s.subject_id,
+s.index_date,
+s.end_followup_date,
+s.death_date,
+s.event_occurred AS status,
+(s.end_followup_date - s.index_date) AS days_to_event,
+s.gender_concept_id,
+CAST(EXTRACT(YEAR FROM s.index_date) - s.year_of_birth AS INTEGER) AS age,
+COALESCE(ccv.has_copd, 0) AS copd,
+COALESCE(ccv.has_asthma, 0) AS asthma,
+COALESCE(ccv.has_diabetes, 0) AS diabetes,
+COALESCE(ccv.has_cvd, 0) AS cvd,
+COALESCE(ccv.has_htn, 0) AS hypertension,
+COALESCE(ccv.has_smoking, 0) AS smoking,
+COALESCE(ccv.has_fibrosis, 0) AS fibrosis,
+COALESCE(ccv.has_pneumonia, 0) AS pneumonia,
+COALESCE(vcv.prior_er_visits, 0) AS prior_er_visits,
+COALESCE(vcv.prior_inpatient_visits, 0) AS prior_inpatient_visits
+FROM sampled_final s
+LEFT JOIN cond_cov ccv ON s.subject_id = ccv.subject_id
+LEFT JOIN visit_cov vcv ON s.subject_id = vcv.subject_id;
+ENTRADABD	vBD		INSERT INTO supervivencia_2 (
+subject_id,
+index_date,
+end_followup_date,
+death_date,
+status,
+days_to_event,
+gender_concept_id,
+age,
+copd,
+asthma,
+diabetes,
+cvd,
+hypertension,
+smoking,
+fibrosis,
+pneumonia,
+prior_er_visits,
+prior_inpatient_visits
+)
+VALUES (
+'#ENTRADA.subject_id#',
+'#ENTRADA.index_date#',
+'#ENTRADA.end_followup_date#',
+'#ENTRADA.death_date#',
+'#ENTRADA.status#',
+'#ENTRADA.days_to_event#',
+'#ENTRADA.gender_concept_id#',
+'#ENTRADA.age#',
+'#ENTRADA.copd#',
+'#ENTRADA.asthma#',
+'#ENTRADA.diabetes#',
+'#ENTRADA.cvd#',
+'#ENTRADA.hypertension#',
+'#ENTRADA.smoking#',
+'#ENTRADA.fibrosis#',
+'#ENTRADA.pneumonia#',
+'#ENTRADA.prior_er_visits#',
+'#ENTRADA.prior_inpatient_visits#'
+);
+API_SUPERVIVENCIA	API		{
+"url":"http://r-api:8000/p1_survival_risk_analysis",
+"contenido": {
+"dbname":"vBD",
+"host":"db",
+"port":"5432",
+"user":"******",
+"password":"******",
+"query_sql":"SELECT r_object_id, CAST(days_to_event AS numeric) / 365.25 AS time_years, CAST(subject_id AS integer) AS subject_id, CAST(index_date AS date) AS index_date, CAST(end_followup_date AS date) AS end_followup_date, CAST(CASE WHEN death_date != '' THEN death_date END AS date) AS death_date, CAST(status AS integer) AS status, CAST(days_to_event AS integer) AS days_to_event, CAST(gender_concept_id AS integer) AS gender_concept_id, CAST(age AS integer) AS age, CAST(copd AS integer) AS copd, CAST(asthma AS integer) AS asthma, CAST(diabetes AS integer) AS diabetes, CAST(cvd AS integer) AS cvd, CAST(hypertension AS integer) AS hypertension, CAST(smoking AS integer) AS smoking, CAST(fibrosis AS integer) AS fibrosis, CAST(pneumonia AS integer) AS pneumonia, CAST(prior_er_visits AS integer) AS prior_er_visits, CAST(prior_inpatient_visits AS integer) AS prior_inpatient_visits FROM public.supervivencia_2",
+"r_object_id": "P1_LC_Risk"
+}
+}
+RESULTADO	table	vBD	SELECT * FROM public.resultados_rstudio
+where r_object_id = 'P1_LC_Risk'
+order by id desc
+limit 1
